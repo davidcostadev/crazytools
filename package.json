@@ -1,0 +1,23 @@
+{
+  "name": "crazytools",
+  "version": "1.0.0",
+  "main": "script.js",
+  "author": "David Costa <davidcostadev@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "develop": "parcel index.html",
+    "start": "http-server dist -o -p 4848",
+    "build": "parcel build index.html"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.4"
+  },
+  "dependencies": {
+    "graphql": "^15.4.0",
+    "http-server": "^0.12.3",
+    "prettier": "^2.1.2",
+    "prismjs": "^1.22.0",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1"
+  }
+}
