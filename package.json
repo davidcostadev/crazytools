@@ -8,6 +8,9 @@
     "start": "http-server dist -o -p 4848",
     "build": "parcel build index.html"
   },
+  "engines": {
+    "node": "16"
+  },
   "devDependencies": {
     "parcel": "^2.8.3"
   },
