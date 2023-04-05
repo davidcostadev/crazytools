@@ -1,7 +1,9 @@
 node_modules
 dist
+!dist/_redirects
 
 *.swp
 .cache
+.parcel-cache
 *.log
 
