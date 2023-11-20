@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import toast from 'react-hot-toast';
 
 import { DefaultLayout } from '../layout/DefaultLayout';
 
@@ -48,6 +49,7 @@ const Group = ({ name, label, value, formatter, onChange }: GroupProps) => {
 
   const handleCopy = () => {
     if (inputRef.current) {
+      toast.success('Copied to clipboard');
       inputRef.current.select();
       navigator.clipboard.writeText(inputRef.current.value);
     }
@@ -57,6 +59,7 @@ const Group = ({ name, label, value, formatter, onChange }: GroupProps) => {
     <div className="flex space-x-5 items-stretch">
       <label className="font-medium w-36 inline-flex items-center">{label}</label>
       <textarea
+        ref={inputRef}
         name={name}
         value={value}
         onChange={onChange}

@@ -2,7 +2,7 @@ import React from 'react';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism.css';
 import * as prettier from 'prettier';
-
+import toast from 'react-hot-toast';
 import parserGraphql from 'prettier/plugins/graphql';
 
 import { DefaultLayout } from '../layout/DefaultLayout';
@@ -31,6 +31,7 @@ export const PrettierGraphqlPayload = () => {
     el.setSelectionRange(0, 99999); // For mobile devices
     navigator.clipboard.writeText(el.value);
     document.body.removeChild(el);
+    toast.success('Copied to clipboard');
   };
 
   return (
