@@ -3,19 +3,17 @@
   "version": "1.0.0",
   "author": "David Costa <davidcostadev@gmail.com>",
   "license": "MIT",
+  "type": "module",
   "scripts": {
-    "develop": "parcel index.html",
-    "start": "http-server dist -o -p 4848",
-    "build": "parcel build index.html"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
   },
   "engines": {
     "node": "18"
   },
   "browserslist": "> 0.25%, not dead",
-  "devDependencies": {
-    "@parcel/config-default": "2.10.3",
-    "parcel": "2.10.3"
-  },
   "dependencies": {
     "graphql": "16.8.1",
     "http-server": "14.1.1",
@@ -23,5 +21,18 @@
     "prismjs": "1.29.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@types/prismjs": "^1.26.3",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
   }
 }
