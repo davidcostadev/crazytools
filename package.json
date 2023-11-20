@@ -9,7 +9,7 @@
     "build": "parcel build index.html"
   },
   "engines": {
-    "node": "16"
+    "node": "18"
   },
   "browserslist": "> 0.25%, not dead",
   "devDependencies": {
