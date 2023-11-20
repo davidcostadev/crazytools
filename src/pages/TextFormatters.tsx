@@ -51,7 +51,7 @@ const Group = ({ name, label, value, formatter, onChange }: GroupProps) => {
     if (inputRef.current) {
       toast.success('Copied to clipboard');
       inputRef.current.select();
-      navigator.clipboard.writeText(inputRef.current.value);
+      navigator.clipboard.writeText(formatter(inputRef.current.value));
     }
   };
 
