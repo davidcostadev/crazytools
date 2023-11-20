@@ -21,27 +21,68 @@ const App = () => {
     });
   };
 
-  return (
-    <>
-      <textarea onChange={handleTextareaChange} rows={10} cols={100} />
-      <div>
-        <h3>Variables</h3>
-        <pre
-          className="language-json"
-          dangerouslySetInnerHTML={{
-            __html: Prism.highlight(input.variables, Prism.languages.javascript, 'json'),
-          }}
-        />
+  const handleCopyToClipboard = (type: 'query' | 'variables') => () => {
+    const el = document.createElement('textarea');
+    el.value = input[type];
+    document.body.appendChild(el);
+    el.select();
+    el.setSelectionRange(0, 99999); // For mobile devices
+    navigator.clipboard.writeText(el.value);
+    document.body.removeChild(el);
+  };
 
-        <h3>Query</h3>
-        <pre
-          className="language-graphql"
-          dangerouslySetInnerHTML={{
-            __html: Prism.highlight(input.query, Prism.languages.javascript, 'graphql'),
-          }}
-        />
-      </div>
-    </>
+  return (
+    <div className="p-5">
+      <h1 className="text-2xl  mb-5 font-normal text-black text-opacity-50">
+        Crazytool /{' '}
+        <span className="text-black text-opacity-100 font-bold">Prettier Graphql Payload</span>
+      </h1>
+      <textarea
+        onChange={handleTextareaChange}
+        className="w-full p-5 border rounded mb-5"
+        rows={5}
+        cols={100}
+      />
+      {(input.query || input.variables) && (
+        <div className="flex space-x-5">
+          <div className="flex-wrap basis-1/2 flex flex-col ">
+            <div className="flex justify-between">
+              <h3 className="text-lg font-medium">Variables</h3>
+              <button
+                onClick={handleCopyToClipboard('variables')}
+                className="text-blue-500 underline hover:text-opacity-80 hover:no-underline active:text-opacity-100 active:underline"
+              >
+                copy to clipboard
+              </button>
+            </div>
+            <pre
+              className="language-json rounded flex-grow bg-red-500"
+              dangerouslySetInnerHTML={{
+                __html: Prism.highlight(input.variables, Prism.languages.javascript, 'json'),
+              }}
+            />
+          </div>
+          <div className="flex-wrap   basis-1/2 flex flex-col">
+            <div className="flex justify-between">
+              <h3 className="text-lg font-medium">Query</h3>
+              <button
+                onClick={handleCopyToClipboard('query')}
+                className="text-blue-500 underline hover:text-opacity-80 hover:no-underline active:text-opacity-100 active:underline"
+              >
+                copy to clipboard
+              </button>
+            </div>
+
+            <pre
+              className="language-graphql rounded flex-grow"
+              dangerouslySetInnerHTML={{
+                __html: Prism.highlight(input.query, Prism.languages.javascript, 'graphql'),
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -56,7 +97,7 @@ const parse = (value: string) => {
     return { variables, query };
   } catch (error) {
     // console.error(error);
-    return { variables: '{}', query: '' };
+    return { variables: '', query: '' };
   }
 };
 
