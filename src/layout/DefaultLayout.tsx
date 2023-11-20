@@ -15,7 +15,7 @@ export const DefaultLayout = ({
         <title>{title}</title>
       </Helmet>
       <h1 className="text-2xl  mb-5 font-normal text-black text-opacity-50">
-        Crazytool / <span className="text-black text-opacity-100 font-bold">{title}</span>
+        Crazytools / <span className="text-black text-opacity-100 font-bold">{title}</span>
       </h1>
       <nav className="flex mb-5">
         <MyNavLink to="/">Prettier Graphql Payload</MyNavLink>
