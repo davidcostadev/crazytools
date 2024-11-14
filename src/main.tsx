@@ -6,6 +6,7 @@ import App from './App.tsx';
 import ErrorPage from './pages/ErrorPage';
 import { PrettierGraphqlPayload } from './pages/PrettierGraphqlPayload';
 import { TextFormatters } from './pages/TextFormatters.tsx';
+import { QuestionsFormatter } from './pages/QuestionsFormatter';
 import './index.css';
 
 const router = createHashRouter([
@@ -21,6 +22,10 @@ const router = createHashRouter([
       {
         path: '/text-formatters',
         element: <TextFormatters />,
+      },
+      {
+        path: '/questions-formatter',
+        element: <QuestionsFormatter />,
       },
     ],
   },

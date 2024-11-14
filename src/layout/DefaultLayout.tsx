@@ -20,6 +20,7 @@ export const DefaultLayout = ({
       <nav className="flex mb-5">
         <MyNavLink to="/">Prettier Graphql Payload</MyNavLink>
         <MyNavLink to="/text-formatters">Text Formatters</MyNavLink>
+        <MyNavLink to="/questions-formatter">Questions Formatter</MyNavLink>
       </nav>
       {children}
     </div>
