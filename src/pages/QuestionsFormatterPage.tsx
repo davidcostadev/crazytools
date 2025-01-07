@@ -8,7 +8,7 @@ import { defaultValue } from './defaultValue';
 
 import * as cheerio from 'cheerio';
 
-export const QuestionsFormatter = () => {
+export const QuestionsFormatterPage = () => {
   const [value, setValue] = useState(defaultValue);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 

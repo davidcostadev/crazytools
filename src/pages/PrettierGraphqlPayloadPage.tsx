@@ -9,7 +9,7 @@ import { DefaultLayout } from '../layout/DefaultLayout';
 
 Prism.highlightAll();
 
-export const PrettierGraphqlPayload = () => {
+export const PrettierGraphqlPayloadPage = () => {
   const [input, setInput] = React.useState(parse('init'));
 
   const handleTextareaChange = async ({

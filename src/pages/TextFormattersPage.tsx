@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 
 import { DefaultLayout } from '../layout/DefaultLayout';
 
-export const TextFormatters = () => {
+export const TextFormattersPage = () => {
   const [form, setForm] = useState({
     toKebabCase: '',
     toSnakeCase: '',

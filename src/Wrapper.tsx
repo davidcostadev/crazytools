@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'react-hot-toast';
 
-const App = () => {
+const Wrapper = () => {
   return (
     <HelmetProvider>
       <Outlet />
@@ -11,4 +11,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default Wrapper;
