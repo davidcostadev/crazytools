@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import clsx from 'clsx';
 import { Helmet } from 'react-helmet-async';
+import { useEffect, useState } from 'react';
 
 export const DefaultLayout = ({
   title,
@@ -9,6 +10,20 @@ export const DefaultLayout = ({
   title: string;
   children: React.ReactNode;
 }) => {
+  const personalUrl = new URLSearchParams(window.location.search).get('personal');
+  const [personal, setPersonal] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    if (personalUrl) {
+      window.localStorage.setItem('personal', personalUrl);
+      setPersonal(personalUrl === 'true');
+    } else {
+      if (window.localStorage.getItem('personal')) {
+        setPersonal(window.localStorage.getItem('personal') === 'true');
+      }
+    }
+  }, [personalUrl]);
+
   return (
     <div className="p-5">
       <Helmet>
@@ -20,7 +35,7 @@ export const DefaultLayout = ({
       <nav className="flex mb-5">
         <MyNavLink to="/">Prettier Graphql Payload</MyNavLink>
         <MyNavLink to="/text-formatters">Text Formatters</MyNavLink>
-        <MyNavLink to="/questions-formatter">Questions Formatter</MyNavLink>
+        {personal && <MyNavLink to="/questions-formatter">Questions Formatter</MyNavLink>}
       </nav>
       {children}
     </div>
