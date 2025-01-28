@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 
 import { DefaultLayout } from '../layout/DefaultLayout';
+import { WordCounter } from '../components/WordCounter';
 
 export const TextFormattersPage = () => {
   const [form, setForm] = useState({
@@ -31,6 +32,7 @@ export const TextFormattersPage = () => {
           formatter={formatterSnakeCase}
           onChange={handleChange}
         />
+        <WordCounter />
       </div>
     </DefaultLayout>
   );
