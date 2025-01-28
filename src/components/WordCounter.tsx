@@ -16,7 +16,7 @@ export const WordCounter = () => {
   };
 
   return (
-    <div className="flex space-x-5 items-stretch">
+    <div className="flex gap-2 md:gap-5 flex-col md:flex-row items-stretch">
       <label className="font-medium w-36 inline-flex items-center">{label}</label>
       <div className="flex flex-col flex-grow">
         <DynamicTextarea

@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import toast from 'react-hot-toast';
 
 import { DefaultLayout } from '../layout/DefaultLayout';
 import { WordCounter } from '../components/WordCounter';
 import { camelCase } from 'lodash';
+import { OutputPlan } from '../components/ui/OutputPlan';
 
 export const TextFormattersPage = () => {
   const [form, setForm] = useState({
@@ -58,36 +58,17 @@ type GroupProps = {
 const Group = ({ name, label, value, formatter, onChange }: GroupProps) => {
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const handleCopy = () => {
-    if (inputRef.current) {
-      toast.success('Copied to clipboard');
-      inputRef.current.select();
-      navigator.clipboard.writeText(formatter(inputRef.current.value));
-    }
-  };
-
   return (
-    <div className="flex space-x-5 items-stretch">
-      <label className="font-medium w-36 inline-flex items-center">{label}</label>
+    <div className="flex gap-2 md:gap-5 items-stretch flex-col md:flex-row">
+      <label className="font-medium w-full md:w-36 inline-flex items-center">{label}</label>
       <textarea
         ref={inputRef}
         name={name}
         value={value}
         onChange={onChange}
-        className="border rounded px-4 py-2 w-80 break-words"
+        className="border rounded px-4 py-2 w-full md:w-80 break-words"
       />
-      <div className="rounded bg-neutral-200 font-mono text-base h-auto flex-grow flex items-center px-5 basis-0 break-all">
-        {formatter(value)}
-      </div>
-      {!!value && (
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="text-blue-500 underline hover:text-opacity-80 hover:no-underline active:text-opacity-100 active:underline"
-        >
-          copy to clipboard
-        </button>
-      )}
+      <OutputPlan text={formatter(value)} />
     </div>
   );
 };
