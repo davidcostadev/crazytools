@@ -3,9 +3,11 @@ import toast from 'react-hot-toast';
 
 import { DefaultLayout } from '../layout/DefaultLayout';
 import { WordCounter } from '../components/WordCounter';
+import { camelCase } from 'lodash';
 
 export const TextFormattersPage = () => {
   const [form, setForm] = useState({
+    toCamelCase: '',
     toKebabCase: '',
     toSnakeCase: '',
   });
@@ -18,6 +20,13 @@ export const TextFormattersPage = () => {
   return (
     <DefaultLayout title="Text Formatters">
       <div className="space-y-5">
+        <Group
+          name="toCamelCase"
+          label="To Camel Case"
+          value={form.toCamelCase}
+          formatter={camelCase}
+          onChange={handleChange}
+        />
         <Group
           name="toKebabCase"
           label="To Kebab Case"
