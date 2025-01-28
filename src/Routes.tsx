@@ -5,6 +5,7 @@ import ErrorPage from './pages/ErrorPage';
 import { PrettierGraphqlPayloadPage } from './pages/PrettierGraphqlPayloadPage';
 import { TextFormattersPage } from './pages/TextFormattersPage';
 import { QuestionsFormatterPage } from './pages/QuestionsFormatterPage';
+import { CountdownPage } from './pages/CountdownPage';
 import './index.css';
 
 const router = createHashRouter([
@@ -24,6 +25,10 @@ const router = createHashRouter([
       {
         path: '/questions-formatter',
         element: <QuestionsFormatterPage />,
+      },
+      {
+        path: '/countdown',
+        element: <CountdownPage />,
       },
     ],
   },
