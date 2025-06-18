@@ -5,17 +5,23 @@ interface DynamicTextareaProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   className?: string;
+  autoFocus?: boolean;
 }
 
-const DynamicTextarea: React.FC<DynamicTextareaProps> = ({ value, onChange, className }) => {
-  const [height, setHeight] = useState(50); // Initial height in pixels
+const DynamicTextarea: React.FC<DynamicTextareaProps> = ({
+  value,
+  onChange,
+  className,
+  autoFocus,
+}) => {
+  const [height, setHeight] = useState(64); // Initial height in pixels
 
   useEffect(() => {
     const textarea = document.getElementById('dynamic-textarea');
     if (textarea) {
       textarea.style.height = 'auto'; // Reset height first
-      textarea.style.height = `${textarea.scrollHeight}px`; // Set new height based on scrollHeight
-      setHeight(textarea.scrollHeight); // Update state with new height
+      textarea.style.height = `${Math.ceil(textarea.scrollHeight)}px`; // Set new height based on scrollHeight
+      setHeight(Math.max(textarea.scrollHeight, 64)); // Update state with new height
     }
   }, [value]);
 
@@ -32,6 +38,7 @@ const DynamicTextarea: React.FC<DynamicTextareaProps> = ({ value, onChange, clas
         setHeight(e.target.scrollHeight); // Update height in state on input change
       }}
       style={{ height: `${height}px` }} // Apply dynamic height from state
+      autoFocus={autoFocus}
     />
   );
 };

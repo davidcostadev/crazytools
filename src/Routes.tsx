@@ -3,7 +3,7 @@ import { RouterProvider, createHashRouter } from 'react-router-dom';
 import Wrapper from './Wrapper';
 import ErrorPage from './pages/ErrorPage';
 import { PrettierGraphqlPayloadPage } from './pages/PrettierGraphqlPayloadPage';
-import { TextFormattersPage } from './pages/TextFormattersPage';
+import { TextFormattersPage } from './pages/text-formatters/TextFormattersPage';
 import { QuestionsFormatterPage } from './pages/QuestionsFormatterPage';
 import { CountdownPage } from './pages/CountdownPage';
 import './index.css';
