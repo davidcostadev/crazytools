@@ -27,7 +27,7 @@ export const OutputPlan = ({ title, text, className }: OutputPlanProps) => {
           </button>
         )}
       </div>
-      <div className="rounded-b bg-neutral-200 font-mono text-base h-auto flex px-4 basis-0 py-2 break-all flex-grow min-h-[2rem]">
+      <div className="rounded-b bg-neutral-200 font-mono text-base flex-1 px-4 py-2 break-all whitespace-pre-wrap">
         {text}
       </div>
     </div>
