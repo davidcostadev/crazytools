@@ -1,10 +1,9 @@
-import { useState } from 'react';
 import { Base64 } from 'js-base64';
-
-import { DefaultLayout } from '../../layout/DefaultLayout';
-import { WordCounter } from '../../components/WordCounter';
-import { camelCase } from 'lodash';
+import { camelCase, capitalize, kebabCase, snakeCase, upperFirst } from 'lodash';
+import { useState } from 'react';
 import { OutputPlan } from '../../components/ui/OutputPlan';
+import { WordCounter } from '../../components/WordCounter';
+import { DefaultLayout } from '../../layout/DefaultLayout';
 
 export const TextFormattersPage = () => {
   const [input, setInput] = useState('');
@@ -39,6 +38,26 @@ export const TextFormattersPage = () => {
             className="w-full h-auto min-h-[10rem] max-w-[20rem]"
           />
           <OutputPlan
+            title="Capitalize"
+            text={formatterCapitalize(input)}
+            className="w-full h-auto min-h-[10rem] max-w-[20rem]"
+          />
+          <OutputPlan
+            title="Lowercase"
+            text={formatterLowercase(input)}
+            className="w-full h-auto min-h-[10rem] max-w-[20rem]"
+          />
+          <OutputPlan
+            title="Uppercase"
+            text={formatterUppercase(input)}
+            className="w-full h-auto min-h-[10rem] max-w-[20rem]"
+          />
+          <OutputPlan
+            title="Title Case"
+            text={formatterTitleCase(input)}
+            className="w-full h-auto min-h-[10rem] max-w-[20rem]"
+          />
+          <OutputPlan
             title="Text Reverse"
             text={formatterTextReverse(input)}
             className="w-full min-h-[10rem] max-w-[20rem]"
@@ -46,6 +65,11 @@ export const TextFormattersPage = () => {
           <OutputPlan
             title="URL Decode"
             text={formatterURLDecode(input)}
+            className="w-full min-h-[10rem] max-w-[20rem]"
+          />
+          <OutputPlan
+            title="URL Decode 2"
+            text={formatterUrlDecode2(input)}
             className="w-full min-h-[10rem] max-w-[20rem]"
           />
           <OutputPlan
@@ -69,31 +93,35 @@ export const TextFormattersPage = () => {
   );
 };
 
-function formatterKebabCase(value: string) {
+function formatterCapitalize(value: string) {
+  return capitalize(value);
+}
+
+function formatterLowercase(value: string) {
+  return value.toLowerCase();
+}
+
+function formatterUppercase(value: string) {
+  return value.toUpperCase();
+}
+
+function formatterTitleCase(value: string) {
   return value
-    .trim()
-    .replace(/[^A-Za-z0-9 ]/g, '')
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .replace(/\s+/g, '-')
-    .toLowerCase();
+    .split(' ')
+    .map((word) => capitalize(word))
+    .join(' ');
+}
+
+function formatterKebabCase(value: string) {
+  return kebabCase(value);
 }
 
 function formatterSnakeCase(value: string) {
-  return value
-    .trim()
-    .replace(/[^A-Za-z0-9 ]/g, '')
-    .replace(/([a-z])([A-Z])/g, '$1_$2')
-    .replace(/\s+/g, '_')
-    .toLowerCase();
+  return snakeCase(value);
 }
 
 function formatterPascalCase(value: string) {
-  return value
-    .trim()
-    .replace(/[^A-Za-z0-9 ]/g, '')
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .replace(/\s+/g, '-')
-    .toLowerCase();
+  return upperFirst(camelCase(value));
 }
 
 function formatterTextReverse(value: string) {
@@ -111,6 +139,14 @@ function formatterURLDecode(value: string) {
 function formatterURLEncode(value: string) {
   try {
     return encodeURI(value);
+  } catch (error) {
+    return 'Invalid URL';
+  }
+}
+
+function formatterUrlDecode2(value: string) {
+  try {
+    return decodeURIComponent(value);
   } catch (error) {
     return 'Invalid URL';
   }
