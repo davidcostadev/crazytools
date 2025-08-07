@@ -105,10 +105,123 @@ function formatterUppercase(value: string) {
   return value.toUpperCase();
 }
 
+const preposicoesSimples = [
+  'a',
+  'ante',
+  'após',
+  'até',
+  'com',
+  'contra',
+  'de',
+  'desde',
+  'em',
+  'entre',
+  'para',
+  'perante',
+  'por',
+  'sem',
+  'sob',
+  'sobre',
+  'trás',
+];
+
+const preposicoesContraidas = [
+  'do', // de + o
+  'da', // de + a
+  'dos', // de + os
+  'das', // de + as
+  'no', // em + o
+  'na', // em + a
+  'nos', // em + os
+  'nas', // em + as
+  'pelo', // por + o
+  'pela', // por + a
+  'pelos', // por + os
+  'pelas', // por + as
+  'ao', // a + o
+  'à', // a + a
+  'aos', // a + os
+  'às', // a + as
+  'àquele',
+  'àquela',
+  'àqueles',
+  'àquelas', // a + aquele(s)/aquela(s)
+];
+
+const simplePrepositions = [
+  'about',
+  'above',
+  'across',
+  'after',
+  'against',
+  'along',
+  'among',
+  'around',
+  'at',
+  'before',
+  'behind',
+  'below',
+  'beneath',
+  'beside',
+  'between',
+  'beyond',
+  'but', // meaning "except"
+  'by',
+  'concerning',
+  'despite',
+  'down',
+  'during',
+  'except',
+  'for',
+  'from',
+  'in',
+  'inside',
+  'into',
+  'like',
+  'near',
+  'of',
+  'off',
+  'on',
+  'onto',
+  'out',
+  'outside',
+  'over',
+  'past',
+  'regarding',
+  'since',
+  'through',
+  'throughout',
+  'to',
+  'toward',
+  'under',
+  'underneath',
+  'until',
+  'up',
+  'upon',
+  'with',
+  'within',
+  'without',
+];
+
 function formatterTitleCase(value: string) {
-  return value
-    .split(' ')
-    .map((word) => capitalize(word))
+  const words = value.split(' ');
+  return words
+    .map((word, index) => {
+      const lowerWord = word.toLowerCase();
+      // Always capitalize the first word
+      if (index === 0) {
+        return capitalize(word);
+      }
+      // Don't capitalize if it's a preposition in either language
+      if (
+        preposicoesSimples.includes(lowerWord) ||
+        preposicoesContraidas.includes(lowerWord) ||
+        simplePrepositions.includes(lowerWord)
+      ) {
+        return lowerWord;
+      }
+      return capitalize(word);
+    })
     .join(' ');
 }
 
