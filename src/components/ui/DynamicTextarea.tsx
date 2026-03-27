@@ -6,6 +6,7 @@ interface DynamicTextareaProps {
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   className?: string;
   autoFocus?: boolean;
+  placeholder?: string;
 }
 
 const DynamicTextarea: React.FC<DynamicTextareaProps> = ({
@@ -13,6 +14,7 @@ const DynamicTextarea: React.FC<DynamicTextareaProps> = ({
   onChange,
   className,
   autoFocus,
+  placeholder,
 }) => {
   const [height, setHeight] = useState(64); // Initial height in pixels
 
@@ -39,6 +41,7 @@ const DynamicTextarea: React.FC<DynamicTextareaProps> = ({
       }}
       style={{ height: `${height}px` }} // Apply dynamic height from state
       autoFocus={autoFocus}
+      placeholder={placeholder}
     />
   );
 };
