@@ -1,7 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import clsx from 'clsx';
 import { Helmet } from 'react-helmet-async';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+import { Tool, ToolCategory, tools } from '../tools';
 
 export const DefaultLayout = ({
   title,
@@ -24,6 +26,17 @@ export const DefaultLayout = ({
     }
   }, [personalUrl]);
 
+  const grouped = useMemo(() => {
+    const source = personal ? tools : tools.filter((t) => !t.personal);
+    const byCategory = new Map<ToolCategory, Tool[]>();
+    source.forEach((tool) => {
+      const list = byCategory.get(tool.category) ?? [];
+      list.push(tool);
+      byCategory.set(tool.category, list);
+    });
+    return Array.from(byCategory.entries());
+  }, [personal]);
+
   return (
     <div className="p-5">
       <Helmet>
@@ -33,37 +46,15 @@ export const DefaultLayout = ({
         Crazytools / <span className="text-black text-opacity-100 font-bold">{title}</span>
       </h1>
       <nav className="flex mb-5 flex-wrap gap-y-1">
-        <NavCategory label="Formatters">
-          <MyNavLink to="/">GraphQL Payload</MyNavLink>
-          <MyNavLink to="/text-formatters">Text Formatters</MyNavLink>
-          <MyNavLink to="/json-formatter">JSON Formatter</MyNavLink>
-          <MyNavLink to="/yaml-json">YAML ↔ JSON</MyNavLink>
-          <MyNavLink to="/sql-formatter">SQL Formatter</MyNavLink>
-          <MyNavLink to="/csv-json">CSV ↔ JSON</MyNavLink>
-        </NavCategory>
-        <NavCategory label="Encode / Crypto">
-          <MyNavLink to="/jwt-decoder">JWT Decoder</MyNavLink>
-          <MyNavLink to="/hash-generator">Hash Generator</MyNavLink>
-          <MyNavLink to="/uuid-generator">UUID Generator</MyNavLink>
-          <MyNavLink to="/html-entities">HTML Entities</MyNavLink>
-        </NavCategory>
-        <NavCategory label="Dev Tools">
-          <MyNavLink to="/regex-tester">Regex Tester</MyNavLink>
-          <MyNavLink to="/diff-viewer">Diff Viewer</MyNavLink>
-          <MyNavLink to="/cron-parser">Cron Parser</MyNavLink>
-          <MyNavLink to="/timestamp-converter">Timestamp</MyNavLink>
-          <MyNavLink to="/color-converter">Color Converter</MyNavLink>
-        </NavCategory>
-        <NavCategory label="Generators">
-          <MyNavLink to="/password-generator">Password</MyNavLink>
-          <MyNavLink to="/lorem-ipsum">Lorem Ipsum</MyNavLink>
-          <MyNavLink to="/countdown">Countdown</MyNavLink>
-        </NavCategory>
-        {personal && (
-          <NavCategory label="Personal">
-            <MyNavLink to="/questions-formatter">Questions Formatter</MyNavLink>
+        {grouped.map(([category, categoryTools]) => (
+          <NavCategory key={category} label={category}>
+            {categoryTools.map((tool) => (
+              <MyNavLink key={tool.path} to={tool.path}>
+                {tool.name}
+              </MyNavLink>
+            ))}
           </NavCategory>
-        )}
+        ))}
       </nav>
       {children}
     </div>
