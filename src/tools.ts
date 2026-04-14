@@ -29,6 +29,7 @@ export const tools: Tool[] = [
   { path: '/uuid-generator', name: 'UUID Generator', category: 'Encode / Crypto', icon: 'fingerprint', keywords: ['uuid', 'guid'] },
   { path: '/html-entities', name: 'HTML Entities', category: 'Encode / Crypto', icon: 'code', keywords: ['html', 'entities', 'encode', 'decode'] },
 
+  { path: '/issue-finder', name: 'Issue Finder', category: 'Dev Tools', icon: 'link', keywords: ['issue', 'linear', 'jira', 'ticket', 'eat', 'link'] },
   { path: '/regex-tester', name: 'Regex Tester', category: 'Dev Tools', icon: 'regex', keywords: ['regex', 'regexp', 'pattern'] },
   { path: '/diff-viewer', name: 'Diff Viewer', category: 'Dev Tools', icon: 'diff', keywords: ['diff', 'compare'] },
   { path: '/cron-parser', name: 'Cron Parser', category: 'Dev Tools', icon: 'clock', keywords: ['cron', 'schedule'] },

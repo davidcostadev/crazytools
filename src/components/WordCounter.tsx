@@ -5,9 +5,10 @@ import { BaselineContentCopy } from './icons/BaselineContentCopy';
 type WordCounterProps = {
   value: string;
   onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  minHeight?: number;
 };
 
-export const WordCounter = ({ value, onChange }: WordCounterProps) => {
+export const WordCounter = ({ value, onChange, minHeight }: WordCounterProps) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
     toast.success('Copied to clipboard');
@@ -21,6 +22,7 @@ export const WordCounter = ({ value, onChange }: WordCounterProps) => {
           onChange={onChange}
           className="border rounded-t px-4 py-2 w-full break-words"
           autoFocus
+          minHeight={minHeight}
         />
         <div className="rounded-b bg-neutral-200 font-mono text-base flex-grow flex items-center px-5 py-2  break-all gap-2 justify-between h-[36px]">
           <div className="flex gap-2 text-xs">

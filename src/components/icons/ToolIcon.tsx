@@ -19,7 +19,8 @@ export type IconName =
   | 'lock'
   | 'file-text'
   | 'hourglass'
-  | 'help';
+  | 'help'
+  | 'link';
 
 const Base = (props: SVGProps<SVGSVGElement>) => (
   <svg
@@ -162,6 +163,12 @@ const paths: Record<IconName, JSX.Element> = {
       <circle cx="12" cy="12" r="9" />
       <path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 2-2.5 2-2.5 3.5" />
       <path d="M12 17h.01" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71" />
     </>
   ),
 };

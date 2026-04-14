@@ -14,6 +14,7 @@ import { JwtDecoderPage } from './pages/jwt-decoder/JwtDecoderPage';
 import { HashGeneratorPage } from './pages/hash-generator/HashGeneratorPage';
 import { UuidGeneratorPage } from './pages/uuid-generator/UuidGeneratorPage';
 import { HtmlEntitiesPage } from './pages/html-entities/HtmlEntitiesPage';
+import { IssueFinderPage } from './pages/issue-finder/IssueFinderPage';
 import { RegexTesterPage } from './pages/regex-tester/RegexTesterPage';
 import { DiffViewerPage } from './pages/diff-viewer/DiffViewerPage';
 import { CronParserPage } from './pages/cron-parser/CronParserPage';
@@ -68,6 +69,10 @@ const router = createHashRouter([
       {
         path: '/html-entities',
         element: <HtmlEntitiesPage />,
+      },
+      {
+        path: '/issue-finder',
+        element: <IssueFinderPage />,
       },
       {
         path: '/regex-tester',
