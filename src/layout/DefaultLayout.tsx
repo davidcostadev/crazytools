@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Tool, ToolCategory, tools } from '../tools';
+import { ToolIcon } from '../components/icons/ToolIcon';
 
 export const DefaultLayout = ({
   title,
@@ -49,7 +50,7 @@ export const DefaultLayout = ({
         {grouped.map(([category, categoryTools]) => (
           <NavCategory key={category} label={category}>
             {categoryTools.map((tool) => (
-              <MyNavLink key={tool.path} to={tool.path}>
+              <MyNavLink key={tool.path} to={tool.path} icon={tool.icon}>
                 {tool.name}
               </MyNavLink>
             ))}
@@ -70,7 +71,15 @@ const NavCategory = ({ label, children }: { label: string; children: React.React
   );
 };
 
-const MyNavLink = ({ to, children }: { to: string; children: React.ReactNode }) => {
+const MyNavLink = ({
+  to,
+  icon,
+  children,
+}: {
+  to: string;
+  icon: Tool['icon'];
+  children: React.ReactNode;
+}) => {
   return (
     <NavLink
       to={to}
@@ -84,7 +93,10 @@ const MyNavLink = ({ to, children }: { to: string; children: React.ReactNode }) 
         )
       }
     >
-      {children}
+      <span className="inline-flex items-center gap-1 align-middle">
+        <ToolIcon name={icon} width={12} height={12} />
+        {children}
+      </span>
     </NavLink>
   );
 };

@@ -1,10 +1,28 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 
 import { Tool, tools } from '../tools';
+import { ToolIcon } from './icons/ToolIcon';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+const RECENT_KEY = 'commandPalette.recent';
+const RECENT_MAX = 8;
+
+const readRecent = (): string[] => {
+  try {
+    const raw = window.localStorage.getItem(RECENT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((p) => typeof p === 'string') : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeRecent = (paths: string[]) => {
+  window.localStorage.setItem(RECENT_KEY, JSON.stringify(paths));
+};
 
 const usePersonal = () => {
   const [personal, setPersonal] = useState(false);
@@ -32,20 +50,33 @@ export const CommandPalette = () => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const personal = usePersonal();
 
-  const results = useMemo(() => {
+  const { results, recentCount } = useMemo(() => {
     const source = personal ? tools : tools.filter((t) => !t.personal);
-    return source
+    const byPath = new Map(source.map((t) => [t.path, t]));
+
+    if (!query.trim()) {
+      const recentTools = recent
+        .map((path) => byPath.get(path))
+        .filter((t): t is Tool => Boolean(t));
+      const recentPaths = new Set(recentTools.map((t) => t.path));
+      const rest = source.filter((t) => !recentPaths.has(t.path));
+      return { results: [...recentTools, ...rest], recentCount: recentTools.length };
+    }
+
+    const ranked = source
       .map((tool) => ({ tool, s: score(tool, query) }))
       .filter(({ s }) => s > 0)
       .sort((a, b) => b.s - a.s)
       .map(({ tool }) => tool);
-  }, [query, personal]);
+    return { results: ranked, recentCount: 0 };
+  }, [query, personal, recent]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -64,6 +95,7 @@ export const CommandPalette = () => {
     if (open) {
       setQuery('');
       setActiveIndex(0);
+      setRecent(readRecent());
       setTimeout(() => inputRef.current?.focus(), 0);
     }
   }, [open]);
@@ -73,11 +105,14 @@ export const CommandPalette = () => {
   }, [query]);
 
   useEffect(() => {
-    const el = listRef.current?.children[activeIndex] as HTMLElement | undefined;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${activeIndex}"]`);
     el?.scrollIntoView({ block: 'nearest' });
   }, [activeIndex]);
 
   const select = (tool: Tool) => {
+    const next = [tool.path, ...recent.filter((p) => p !== tool.path)].slice(0, RECENT_MAX);
+    writeRecent(next);
+    setRecent(next);
     setOpen(false);
     if (location.pathname !== tool.path) navigate(tool.path);
   };
@@ -127,25 +162,40 @@ export const CommandPalette = () => {
         ) : (
           <ul ref={listRef} className="max-h-[50vh] overflow-y-auto py-1">
             {results.map((tool, i) => (
-              <li
-                key={tool.path}
-                onMouseEnter={() => setActiveIndex(i)}
-                onClick={() => select(tool)}
-                className={clsx(
-                  'flex items-center justify-between px-4 py-2 cursor-pointer text-sm',
-                  i === activeIndex ? 'bg-blue-500 text-white' : 'text-black/80'
-                )}
-              >
-                <span className="font-medium">{tool.name}</span>
-                <span
+              <Fragment key={tool.path}>
+                {recentCount > 0 && i === 0 && <SectionLabel>Recent</SectionLabel>}
+                {recentCount > 0 && i === recentCount && <SectionLabel>All tools</SectionLabel>}
+                <li
+                  data-idx={i}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  onClick={() => select(tool)}
                   className={clsx(
-                    'text-xs',
-                    i === activeIndex ? 'text-white/80' : 'text-black/40'
+                    'flex items-center justify-between px-4 py-2 cursor-pointer text-sm gap-3',
+                    i === activeIndex ? 'bg-blue-500 text-white' : 'text-black/80'
                   )}
                 >
-                  {tool.category}
-                </span>
-              </li>
+                  <span className="flex items-center gap-3 min-w-0">
+                    <ToolIcon
+                      name={tool.icon}
+                      width={16}
+                      height={16}
+                      className={clsx(
+                        'shrink-0',
+                        i === activeIndex ? 'text-white/90' : 'text-black/50'
+                      )}
+                    />
+                    <span className="font-medium truncate">{tool.name}</span>
+                  </span>
+                  <span
+                    className={clsx(
+                      'text-xs shrink-0',
+                      i === activeIndex ? 'text-white/80' : 'text-black/40'
+                    )}
+                  >
+                    {tool.category}
+                  </span>
+                </li>
+              </Fragment>
             ))}
           </ul>
         )}
@@ -168,6 +218,12 @@ export const CommandPalette = () => {
     </div>
   );
 };
+
+const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+  <li className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-black/40 pointer-events-none">
+    {children}
+  </li>
+);
 
 const SearchIcon = () => (
   <svg
