@@ -22,6 +22,7 @@ import { TimestampConverterPage } from './pages/timestamp-converter/TimestampCon
 import { ColorConverterPage } from './pages/color-converter/ColorConverterPage';
 import { PasswordGeneratorPage } from './pages/password-generator/PasswordGeneratorPage';
 import { LoremIpsumPage } from './pages/lorem-ipsum/LoremIpsumPage';
+import { LogInsightsPage } from './pages/log-insights/LogInsightsPage';
 import './index.css';
 
 const router = createHashRouter([
@@ -93,6 +94,10 @@ const router = createHashRouter([
       {
         path: '/color-converter',
         element: <ColorConverterPage />,
+      },
+      {
+        path: '/log-insights',
+        element: <LogInsightsPage />,
       },
       {
         path: '/password-generator',

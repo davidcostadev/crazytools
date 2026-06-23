@@ -20,7 +20,8 @@ export type IconName =
   | 'file-text'
   | 'hourglass'
   | 'help'
-  | 'link';
+  | 'link'
+  | 'activity';
 
 const Base = (props: SVGProps<SVGSVGElement>) => (
   <svg
@@ -169,6 +170,11 @@ const paths: Record<IconName, JSX.Element> = {
     <>
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.71" />
+    </>
+  ),
+  activity: (
+    <>
+      <path d="M3 12h4l3 8 4-16 3 8h4" />
     </>
   ),
 };

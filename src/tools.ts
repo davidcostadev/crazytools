@@ -35,6 +35,7 @@ export const tools: Tool[] = [
   { path: '/cron-parser', name: 'Cron Parser', category: 'Dev Tools', icon: 'clock', keywords: ['cron', 'schedule'] },
   { path: '/timestamp-converter', name: 'Timestamp', category: 'Dev Tools', icon: 'timer', keywords: ['timestamp', 'unix', 'epoch', 'date'] },
   { path: '/color-converter', name: 'Color Converter', category: 'Dev Tools', icon: 'palette', keywords: ['color', 'hex', 'rgb', 'hsl'] },
+  { path: '/log-insights', name: 'Log Insights', category: 'Dev Tools', icon: 'activity', keywords: ['log', 'logs', 'nginx', 'apache', 'access', 'analytics', 'insights', 'traffic'] },
 
   { path: '/password-generator', name: 'Password', category: 'Generators', icon: 'lock', keywords: ['password', 'random', 'generator'] },
   { path: '/lorem-ipsum', name: 'Lorem Ipsum', category: 'Generators', icon: 'file-text', keywords: ['lorem', 'ipsum', 'placeholder', 'text'] },
