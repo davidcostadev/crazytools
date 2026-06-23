@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { DefaultLayout } from '../../layout/DefaultLayout';
+import { BaselineContentCopy } from '../../components/icons/BaselineContentCopy';
 import {
   parseLogs,
   countBy,
@@ -136,19 +137,19 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
     [buckets]
   );
 
-  const topUrls = useMemo(() => countBy(entries, (e) => e.path).slice(0, 12), [entries]);
-  const topIps = useMemo(() => countBy(entries, (e) => e.ip).slice(0, 12), [entries]);
+  const topUrls = useMemo(() => countBy(entries, (e) => e.path), [entries]);
+  const topIps = useMemo(() => countBy(entries, (e) => e.ip), [entries]);
   const methods = useMemo(() => countBy(entries, (e) => e.method), [entries]);
   const statuses = useMemo(
     () => countBy(entries, (e) => String(e.status)).sort((a, b) => +a.key - +b.key),
     [entries]
   );
   const userAgents = useMemo(
-    () => countBy(entries.filter((e) => e.userAgent !== '-'), (e) => e.userAgent).slice(0, 8),
+    () => countBy(entries.filter((e) => e.userAgent !== '-'), (e) => e.userAgent),
     [entries]
   );
   const referers = useMemo(
-    () => countBy(entries.filter((e) => e.referer !== '-'), (e) => e.referer).slice(0, 8),
+    () => countBy(entries.filter((e) => e.referer !== '-'), (e) => e.referer),
     [entries]
   );
 
@@ -159,14 +160,12 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
       const prev = seen.get(e.ip);
       if (!prev || (prev.date && e.date > prev.date)) seen.set(e.ip, e);
     }
-    return Array.from(seen.values())
-      .sort((a, b) => (b.date!.getTime() - a.date!.getTime()))
-      .slice(0, 12);
+    return Array.from(seen.values()).sort((a, b) => b.date!.getTime() - a.date!.getTime());
   }, [entries]);
 
   const suspiciousEntries = useMemo(() => entries.filter((e) => isSuspicious(e)), [entries]);
   const topAttackers = useMemo(
-    () => countBy(suspiciousEntries, (e) => e.ip).slice(0, 8),
+    () => countBy(suspiciousEntries, (e) => e.ip),
     [suspiciousEntries]
   );
 
@@ -248,25 +247,31 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
       </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Panel title="Top URLs">
+        <Panel title="Top URLs" subtitle={`${topUrls.length} unique`} copyText={counterText(topUrls)}>
           <BarList items={topUrls} mono />
         </Panel>
-        <Panel title="Top IPs">
+        <Panel title="Top IPs" subtitle={`${topIps.length} unique`} copyText={counterText(topIps)}>
           <BarList items={topIps} mono />
         </Panel>
-        <Panel title="Status codes">
+        <Panel title="Status codes" copyText={counterText(statuses)}>
           <BarList items={statuses} renderKey={(k) => <span className={statusClass(+k)}>{k}</span>} />
         </Panel>
-        <Panel title="Methods">
+        <Panel title="Methods" copyText={counterText(methods)}>
           <BarList items={methods} mono />
         </Panel>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Panel title="Most recent IPs" subtitle="last request seen per IP">
-          <div className="space-y-1">
-            {recentIps.map((e) => (
-              <div key={e.ip} className="flex items-center justify-between text-xs gap-2 py-0.5">
+        <Panel
+          title="Most recent IPs"
+          subtitle="last request seen per IP"
+          copyText={recentIps
+            .map((e) => `${e.date!.toISOString().slice(0, 19)}\t${e.ip}\t${e.path}`)
+            .join('\n')}
+        >
+          <div className="space-y-1 max-h-72 overflow-auto pr-1">
+            {recentIps.map((e, i) => (
+              <div key={`${e.ip}-${i}`} className="flex items-center justify-between text-xs gap-2 py-0.5">
                 <span className="font-mono">{e.ip}</span>
                 <span className="text-neutral-400 truncate flex-1 mx-2 text-right">{e.path}</span>
                 <span className="text-neutral-500 whitespace-nowrap">
@@ -279,6 +284,7 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
         <Panel
           title="Suspicious activity"
           subtitle="scans, probes, malformed & known exploit paths"
+          copyText={topAttackers.length ? counterText(topAttackers) : undefined}
         >
           {topAttackers.length ? (
             <BarList items={topAttackers} mono accent="bg-red-400" />
@@ -289,10 +295,18 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Panel title="Top user agents">
+        <Panel
+          title="Top user agents"
+          subtitle={userAgents.length ? `${userAgents.length} unique` : undefined}
+          copyText={userAgents.length ? counterText(userAgents) : undefined}
+        >
           {userAgents.length ? <BarList items={userAgents} mono small /> : <Empty />}
         </Panel>
-        <Panel title="Top referers">
+        <Panel
+          title="Top referers"
+          subtitle={referers.length ? `${referers.length} unique` : undefined}
+          copyText={referers.length ? counterText(referers) : undefined}
+        >
           {referers.length ? <BarList items={referers} mono small /> : <Empty />}
         </Panel>
       </div>
@@ -331,22 +345,45 @@ const StatCard = ({
   </div>
 );
 
+const counterText = (items: { key: string; count: number }[]): string =>
+  items.map((i) => `${i.count}\t${i.key}`).join('\n');
+
 const Panel = ({
   title,
   subtitle,
+  copyText,
   children,
 }: {
   title: string;
   subtitle?: string;
+  copyText?: string;
   children: React.ReactNode;
 }) => (
   <div className="border rounded p-4 bg-white">
-    <div className="flex items-baseline justify-between mb-3">
+    <div className="flex items-baseline justify-between mb-3 gap-2">
       <h3 className="text-sm font-medium text-neutral-800">{title}</h3>
-      {subtitle && <span className="text-xs text-neutral-400">{subtitle}</span>}
+      <div className="flex items-baseline gap-2">
+        {subtitle && <span className="text-xs text-neutral-400">{subtitle}</span>}
+        {copyText && <CopyButton text={copyText} label={`${title} copied`} />}
+      </div>
     </div>
     {children}
   </div>
+);
+
+const CopyButton = ({ text, label }: { text: string; label: string }) => (
+  <button
+    type="button"
+    aria-label={label}
+    title="Copy to clipboard"
+    onClick={() => {
+      navigator.clipboard.writeText(text);
+      toast.success(label);
+    }}
+    className="text-neutral-400 cursor-pointer hover:text-blue-500 active:text-blue-600 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none rounded p-0.5 transition-colors"
+  >
+    <BaselineContentCopy className="text-sm" />
+  </button>
 );
 
 const Mini = ({ label, value }: { label: string; value: string }) => (
@@ -373,7 +410,7 @@ const BarList = ({
 }) => {
   const max = items.reduce((m, i) => Math.max(m, i.count), 0) || 1;
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 max-h-72 overflow-auto pr-1">
       {items.map((item) => (
         <div key={item.key} className="flex items-center gap-2">
           <div className="flex-1 min-w-0 relative">
