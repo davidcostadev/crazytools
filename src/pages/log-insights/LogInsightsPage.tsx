@@ -506,6 +506,7 @@ const TimeSeriesChart = ({
 }) => {
   const [hover, setHover] = useState<number | null>(null);
   const [drag, setDrag] = useState<{ start: number; end: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const W = 1000;
   const H = 220;
   const pad = { top: 10, right: 10, bottom: 28, left: 36 };
@@ -522,6 +523,16 @@ const TimeSeriesChart = ({
   const x = (i: number) => pad.left + (i / (buckets.length - 1)) * innerW;
   const y = (v: number) => pad.top + innerH - (v / max) * innerH;
   const colW = innerW / buckets.length;
+
+  // Map a screen X to a bucket index (the svg is responsive, so scale from its rect).
+  const indexFromClientX = (clientX: number) => {
+    const svg = svgRef.current;
+    if (!svg) return 0;
+    const rect = svg.getBoundingClientRect();
+    const px = ((clientX - rect.left) / rect.width) * W;
+    const frac = (px - pad.left) / innerW;
+    return Math.max(0, Math.min(buckets.length - 1, Math.round(frac * (buckets.length - 1))));
+  };
 
   const linePath = buckets.map((b, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(b.count).toFixed(1)}`).join(' ');
   const areaPath = `${linePath} L${x(buckets.length - 1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z`;
@@ -557,6 +568,7 @@ const TimeSeriesChart = ({
   return (
     <div className="overflow-x-auto select-none">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         className="w-full min-w-[480px] cursor-crosshair"
         onMouseLeave={() => {
@@ -603,25 +615,28 @@ const TimeSeriesChart = ({
           ) : null
         )}
 
-        {/* hover + drag hit areas */}
-        {buckets.map((_, i) => (
-          <rect
-            key={i}
-            x={x(i) - colW / 2}
-            y={pad.top}
-            width={colW}
-            height={innerH}
-            fill="transparent"
-            onMouseDown={() => setDrag({ start: i, end: i })}
-            onMouseEnter={() => {
-              setHover(i);
-              setDrag((d) => (d ? { ...d, end: i } : null));
-            }}
-          />
-        ))}
+        {/* single overlay catches click + drag; index derived from cursor X */}
+        <rect
+          x={pad.left - colW / 2}
+          y={pad.top}
+          width={innerW + colW}
+          height={innerH}
+          fill="transparent"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const i = indexFromClientX(e.clientX);
+            setHover(i);
+            setDrag({ start: i, end: i });
+          }}
+          onMouseMove={(e) => {
+            const i = indexFromClientX(e.clientX);
+            setHover(i);
+            setDrag((d) => (d ? { ...d, end: i } : null));
+          }}
+        />
 
         {hover !== null && !drag && (
-          <g>
+          <g pointerEvents="none">
             <line
               x1={x(hover)}
               y1={pad.top}
