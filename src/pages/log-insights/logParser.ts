@@ -115,7 +115,7 @@ export function countBy<T>(items: T[], getKey: (item: T) => string): Counter[] {
     .sort((a, b) => b.count - a.count);
 }
 
-export type TimeBucket = { time: number; label: string; count: number; errors: number };
+export type TimeBucket = { time: number; count: number; errors: number };
 
 const NICE_STEPS_SECONDS = [
   1, 5, 10, 30,
@@ -124,20 +124,53 @@ const NICE_STEPS_SECONDS = [
   86400,
 ];
 
-function pad(n: number): string {
-  return n < 10 ? '0' + n : String(n);
+export type TimeZoneOption = { id: string; label: string; tz: string };
+
+export const TIME_ZONES: TimeZoneOption[] = [
+  { id: 'utc', label: 'UTC', tz: 'UTC' },
+  { id: 'ny', label: 'New York', tz: 'America/New_York' },
+  { id: 'recife', label: 'Recife', tz: 'America/Recife' },
+];
+
+type TimeMode = 'day' | 'hour' | 'time' | 'seconds' | 'full';
+
+export function formatTime(time: number, tz: string, mode: TimeMode): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+    .formatToParts(new Date(time))
+    .reduce<Record<string, string>>((acc, p) => {
+      acc[p.type] = p.value;
+      return acc;
+    }, {});
+  const { year, month, day, hour, minute, second } = parts;
+  const h = hour === '24' ? '00' : hour;
+  switch (mode) {
+    case 'day':
+      return `${year}-${month}-${day}`;
+    case 'hour':
+      return `${month}/${day} ${h}:00`;
+    case 'time':
+      return `${h}:${minute}`;
+    case 'seconds':
+      return `${h}:${minute}:${second}`;
+    case 'full':
+      return `${year}-${month}-${day} ${h}:${minute}:${second}`;
+  }
 }
 
-function formatBucketLabel(d: Date, stepSeconds: number): string {
-  if (stepSeconds >= 86400) {
-    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
-  }
-  if (stepSeconds >= 3600) {
-    return `${pad(d.getUTCMonth() + 1)}/${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:00`;
-  }
-  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}${
-    stepSeconds < 60 ? ':' + pad(d.getUTCSeconds()) : ''
-  }`;
+export function bucketLabelMode(stepSeconds: number): TimeMode {
+  if (stepSeconds >= 86400) return 'day';
+  if (stepSeconds >= 3600) return 'hour';
+  if (stepSeconds < 60) return 'seconds';
+  return 'time';
 }
 
 export function buildTimeSeries(entries: LogEntry[], targetBuckets = 60): {
@@ -162,12 +195,7 @@ export function buildTimeSeries(entries: LogEntry[], targetBuckets = 60): {
     const bucketTime = Math.floor(e.date.getTime() / stepMs) * stepMs;
     let bucket = map.get(bucketTime);
     if (!bucket) {
-      bucket = {
-        time: bucketTime,
-        label: formatBucketLabel(new Date(bucketTime), stepSeconds),
-        count: 0,
-        errors: 0,
-      };
+      bucket = { time: bucketTime, count: 0, errors: 0 };
       map.set(bucketTime, bucket);
     }
     bucket.count++;
@@ -177,14 +205,7 @@ export function buildTimeSeries(entries: LogEntry[], targetBuckets = 60): {
   // Fill empty buckets so the line chart shows real gaps.
   const buckets: TimeBucket[] = [];
   for (let t = start; t <= max; t += stepMs) {
-    buckets.push(
-      map.get(t) ?? {
-        time: t,
-        label: formatBucketLabel(new Date(t), stepSeconds),
-        count: 0,
-        errors: 0,
-      }
-    );
+    buckets.push(map.get(t) ?? { time: t, count: 0, errors: 0 });
   }
   return { buckets, stepSeconds };
 }

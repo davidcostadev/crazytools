@@ -8,9 +8,12 @@ import {
   buildTimeSeries,
   buildAiPrompt,
   formatBytes,
+  formatTime,
+  bucketLabelMode,
   statusClass,
   isBot,
   isSuspicious,
+  TIME_ZONES,
   type LogEntry,
   type TimeBucket,
 } from './logParser';
@@ -131,7 +134,12 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
     };
   }, [entries]);
 
-  const { buckets } = useMemo(() => buildTimeSeries(entries), [entries]);
+  const [tz, setTz] = useState(TIME_ZONES[0].tz);
+  // A selected time window (bucket start + step in ms) acts like Chrome's network
+  // time-range filter: clicking a point on the chart narrows the request explorer.
+  const [selectedWindow, setSelectedWindow] = useState<{ start: number; end: number } | null>(null);
+
+  const { buckets, stepSeconds } = useMemo(() => buildTimeSeries(entries), [entries]);
   const peak = useMemo(
     () => buckets.reduce<TimeBucket | null>((max, b) => (!max || b.count > max.count ? b : max), null),
     [buckets]
@@ -201,9 +209,26 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
         >
           {showPrompt ? 'Hide preview' : 'Preview prompt'}
         </button>
-        <span className="text-xs text-neutral-400">
-          Generates a ready-to-paste summary prompt for any AI assistant.
-        </span>
+
+        <div className="ml-auto flex items-center gap-1">
+          <span className="text-xs text-neutral-400 mr-1">Timezone:</span>
+          <div className="inline-flex rounded border overflow-hidden">
+            {TIME_ZONES.map((z) => (
+              <button
+                key={z.id}
+                type="button"
+                onClick={() => setTz(z.tz)}
+                className={`px-2.5 py-1 text-xs cursor-pointer transition-colors focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none ${
+                  tz === z.tz
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-neutral-600 hover:bg-neutral-50 active:bg-neutral-100'
+                }`}
+              >
+                {z.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {showPrompt && (
@@ -237,14 +262,40 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
 
       {stats.first && stats.last && (
         <div className="text-xs text-neutral-500">
-          Time range: {stats.first.toISOString().replace('T', ' ').slice(0, 19)} →{' '}
-          {stats.last.toISOString().replace('T', ' ').slice(0, 19)} UTC
+          Time range: {formatTime(stats.first.getTime(), tz, 'full')} →{' '}
+          {formatTime(stats.last.getTime(), tz, 'full')}{' '}
+          {TIME_ZONES.find((z) => z.tz === tz)?.label}
         </div>
       )}
 
-      <Panel title="Requests over time" subtitle={peak ? `Peak: ${peak.count} req @ ${peak.label}` : undefined}>
-        <TimeSeriesChart buckets={buckets} peak={peak} />
+      <Panel
+        title="Requests over time"
+        subtitle={
+          peak
+            ? `Peak: ${peak.count} req @ ${formatTime(peak.time, tz, bucketLabelMode(stepSeconds))}`
+            : undefined
+        }
+      >
+        <TimeSeriesChart
+          buckets={buckets}
+          peak={peak}
+          stepSeconds={stepSeconds}
+          tz={tz}
+          selectedTime={selectedWindow?.start ?? null}
+          onSelect={(time) =>
+            setSelectedWindow((prev) =>
+              prev?.start === time ? null : { start: time, end: time + stepSeconds * 1000 }
+            )
+          }
+        />
       </Panel>
+
+      <RequestExplorer
+        entries={entries}
+        tz={tz}
+        window={selectedWindow}
+        onClearWindow={() => setSelectedWindow(null)}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Panel title="Top URLs" subtitle={`${topUrls.length} unique`} copyText={counterText(topUrls)}>
@@ -266,7 +317,7 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
           title="Most recent IPs"
           subtitle="last request seen per IP"
           copyText={recentIps
-            .map((e) => `${e.date!.toISOString().slice(0, 19)}\t${e.ip}\t${e.path}`)
+            .map((e) => `${formatTime(e.date!.getTime(), tz, 'full')}\t${e.ip}\t${e.path}`)
             .join('\n')}
         >
           <div className="space-y-1 max-h-72 overflow-auto pr-1">
@@ -274,8 +325,8 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
               <div key={`${e.ip}-${i}`} className="flex items-center justify-between text-xs gap-2 py-0.5">
                 <span className="font-mono">{e.ip}</span>
                 <span className="text-neutral-400 truncate flex-1 mx-2 text-right">{e.path}</span>
-                <span className="text-neutral-500 whitespace-nowrap">
-                  {e.date!.toISOString().slice(11, 19)}
+                <span className="text-neutral-500 whitespace-nowrap font-mono">
+                  {formatTime(e.date!.getTime(), tz, 'seconds')}
                 </span>
               </div>
             ))}
@@ -436,7 +487,21 @@ const BarList = ({
   );
 };
 
-const TimeSeriesChart = ({ buckets, peak }: { buckets: TimeBucket[]; peak: TimeBucket | null }) => {
+const TimeSeriesChart = ({
+  buckets,
+  peak,
+  stepSeconds,
+  tz,
+  selectedTime,
+  onSelect,
+}: {
+  buckets: TimeBucket[];
+  peak: TimeBucket | null;
+  stepSeconds: number;
+  tz: string;
+  selectedTime: number | null;
+  onSelect: (time: number) => void;
+}) => {
   const [hover, setHover] = useState<number | null>(null);
   const W = 1000;
   const H = 220;
@@ -448,9 +513,11 @@ const TimeSeriesChart = ({ buckets, peak }: { buckets: TimeBucket[]; peak: TimeB
     return <p className="text-xs text-neutral-400">Not enough timestamped data to plot.</p>;
   }
 
+  const labelMode = bucketLabelMode(stepSeconds);
   const max = buckets.reduce((m, b) => Math.max(m, b.count), 0) || 1;
   const x = (i: number) => pad.left + (i / (buckets.length - 1)) * innerW;
   const y = (v: number) => pad.top + innerH - (v / max) * innerH;
+  const colW = innerW / buckets.length;
 
   const linePath = buckets.map((b, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(b.count).toFixed(1)}`).join(' ');
   const areaPath = `${linePath} L${x(buckets.length - 1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z`;
@@ -460,12 +527,13 @@ const TimeSeriesChart = ({ buckets, peak }: { buckets: TimeBucket[]; peak: TimeB
 
   const gridLines = 4;
   const labelEvery = Math.ceil(buckets.length / 8);
+  const selectedIndex = selectedTime !== null ? buckets.findIndex((b) => b.time === selectedTime) : -1;
 
   return (
     <div className="overflow-x-auto">
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full min-w-[480px]"
+        className="w-full min-w-[480px] cursor-pointer"
         onMouseLeave={() => setHover(null)}
       >
         {Array.from({ length: gridLines + 1 }).map((_, i) => {
@@ -481,39 +549,42 @@ const TimeSeriesChart = ({ buckets, peak }: { buckets: TimeBucket[]; peak: TimeB
           );
         })}
 
+        {selectedIndex >= 0 && (
+          <rect
+            x={x(selectedIndex) - colW / 2}
+            y={pad.top}
+            width={colW}
+            height={innerH}
+            fill="#3b82f6"
+            opacity={0.15}
+          />
+        )}
+
         <path d={areaPath} fill="#3b82f6" opacity={0.1} />
         <path d={linePath} fill="none" stroke="#3b82f6" strokeWidth={1.5} />
         <path d={errorPath} fill="none" stroke="#f97316" strokeWidth={1} opacity={0.8} />
 
-        {peak && (
-          <circle cx={x(buckets.indexOf(peak))} cy={y(peak.count)} r={3} fill="#3b82f6" />
-        )}
+        {peak && <circle cx={x(buckets.indexOf(peak))} cy={y(peak.count)} r={3} fill="#3b82f6" />}
 
         {buckets.map((b, i) =>
           i % labelEvery === 0 ? (
-            <text
-              key={i}
-              x={x(i)}
-              y={H - 8}
-              textAnchor="middle"
-              fontSize="9"
-              fill="#999"
-            >
-              {b.label}
+            <text key={i} x={x(i)} y={H - 8} textAnchor="middle" fontSize="9" fill="#999">
+              {formatTime(b.time, tz, labelMode)}
             </text>
           ) : null
         )}
 
-        {/* hover hit areas */}
-        {buckets.map((_, i) => (
+        {/* hover + click hit areas */}
+        {buckets.map((b, i) => (
           <rect
             key={i}
-            x={x(i) - innerW / buckets.length / 2}
+            x={x(i) - colW / 2}
             y={pad.top}
-            width={innerW / buckets.length}
+            width={colW}
             height={innerH}
             fill="transparent"
             onMouseEnter={() => setHover(i)}
+            onClick={() => onSelect(b.time)}
           />
         ))}
 
@@ -537,12 +608,165 @@ const TimeSeriesChart = ({ buckets, peak }: { buckets: TimeBucket[]; peak: TimeB
           requests
           <span className="inline-block w-2 h-2 bg-orange-400 rounded-sm ml-3 mr-1 align-middle" />
           errors
+          <span className="ml-3 text-neutral-400">· click a point to filter requests</span>
         </span>
         {hover !== null && (
           <span className="font-mono">
-            {buckets[hover].label}: {buckets[hover].count} req · {buckets[hover].errors} err
+            {formatTime(buckets[hover].time, tz, labelMode)}: {buckets[hover].count} req ·{' '}
+            {buckets[hover].errors} err
           </span>
         )}
+      </div>
+    </div>
+  );
+};
+
+const ROW_LIMIT = 1000;
+
+const RequestExplorer = ({
+  entries,
+  tz,
+  window,
+  onClearWindow,
+}: {
+  entries: LogEntry[];
+  tz: string;
+  window: { start: number; end: number } | null;
+  onClearWindow: () => void;
+}) => {
+  const [query, setQuery] = useState('');
+  const [onlyErrors, setOnlyErrors] = useState(false);
+  const [onlySuspicious, setOnlySuspicious] = useState(false);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return entries.filter((e) => {
+      if (window && e.date) {
+        const t = e.date.getTime();
+        if (t < window.start || t >= window.end) return false;
+      } else if (window && !e.date) {
+        return false;
+      }
+      if (onlyErrors && e.status < 400) return false;
+      if (onlySuspicious && !isSuspicious(e)) return false;
+      if (q) {
+        const hay = `${e.ip} ${e.method} ${e.status} ${e.path} ${e.userAgent} ${e.referer}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [entries, query, onlyErrors, onlySuspicious, window]);
+
+  const shown = filtered.slice(0, ROW_LIMIT);
+
+  const copyText = filtered
+    .map(
+      (e) =>
+        `${e.date ? formatTime(e.date.getTime(), tz, 'full') : '-'}\t${e.ip}\t${e.method}\t${
+          e.status
+        }\t${e.size}\t${e.path}\t${e.userAgent}`
+    )
+    .join('\n');
+
+  return (
+    <div className="border rounded p-4 bg-white">
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <h3 className="text-sm font-medium text-neutral-800">
+          Request explorer
+          <span className="ml-2 text-xs text-neutral-400 font-normal">
+            {filtered.length.toLocaleString()} of {entries.length.toLocaleString()}
+            {filtered.length > ROW_LIMIT && ` (showing first ${ROW_LIMIT.toLocaleString()})`}
+          </span>
+        </h3>
+        <CopyButton text={copyText} label="Filtered requests copied" />
+      </div>
+
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Filter by IP, path, status, method, user agent..."
+          className="flex-1 min-w-[200px] border rounded px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 hover:border-neutral-400 transition-colors"
+        />
+        <label className="inline-flex items-center gap-1.5 text-xs text-neutral-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={onlyErrors}
+            onChange={(e) => setOnlyErrors(e.target.checked)}
+            className="cursor-pointer accent-blue-500"
+          />
+          Errors only
+        </label>
+        <label className="inline-flex items-center gap-1.5 text-xs text-neutral-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={onlySuspicious}
+            onChange={(e) => setOnlySuspicious(e.target.checked)}
+            className="cursor-pointer accent-blue-500"
+          />
+          Suspicious only
+        </label>
+      </div>
+
+      {window && (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="inline-flex items-center gap-2 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded px-2 py-1">
+            Time window: {formatTime(window.start, tz, 'seconds')} → {formatTime(window.end, tz, 'seconds')}
+            <button
+              type="button"
+              onClick={onClearWindow}
+              aria-label="Clear time window filter"
+              className="cursor-pointer hover:text-blue-900 active:text-blue-950 font-medium focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none rounded"
+            >
+              ✕
+            </button>
+          </span>
+        </div>
+      )}
+
+      <div className="max-h-96 overflow-auto border rounded">
+        <table className="w-full text-xs">
+          <thead className="sticky top-0 bg-neutral-50 text-neutral-500 text-left">
+            <tr>
+              <th className="px-2 py-1.5 font-medium whitespace-nowrap">Time</th>
+              <th className="px-2 py-1.5 font-medium whitespace-nowrap">IP</th>
+              <th className="px-2 py-1.5 font-medium">Method</th>
+              <th className="px-2 py-1.5 font-medium">Status</th>
+              <th className="px-2 py-1.5 font-medium whitespace-nowrap text-right">Size</th>
+              <th className="px-2 py-1.5 font-medium">Path</th>
+              <th className="px-2 py-1.5 font-medium">User agent</th>
+            </tr>
+          </thead>
+          <tbody className="font-mono">
+            {shown.map((e, i) => (
+              <tr key={i} className="border-t hover:bg-neutral-50">
+                <td className="px-2 py-1 whitespace-nowrap text-neutral-500">
+                  {e.date ? formatTime(e.date.getTime(), tz, 'seconds') : '-'}
+                </td>
+                <td className="px-2 py-1 whitespace-nowrap">{e.ip}</td>
+                <td className="px-2 py-1">{e.method}</td>
+                <td className={`px-2 py-1 ${statusClass(e.status)}`}>{e.status}</td>
+                <td className="px-2 py-1 text-right text-neutral-500 tabular-nums">
+                  {e.size ? formatBytes(e.size) : '-'}
+                </td>
+                <td className="px-2 py-1 max-w-[280px] truncate" title={e.path}>
+                  {e.path}
+                </td>
+                <td className="px-2 py-1 max-w-[220px] truncate text-neutral-400" title={e.userAgent}>
+                  {e.userAgent}
+                </td>
+              </tr>
+            ))}
+            {shown.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-2 py-6 text-center text-neutral-400">
+                  No requests match the current filters.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
