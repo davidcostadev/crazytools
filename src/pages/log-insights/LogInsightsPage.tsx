@@ -281,10 +281,12 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
           peak={peak}
           stepSeconds={stepSeconds}
           tz={tz}
-          selectedTime={selectedWindow?.start ?? null}
-          onSelect={(time) =>
+          selectedWindow={selectedWindow}
+          onSelectRange={(start, end, isSingle) =>
             setSelectedWindow((prev) =>
-              prev?.start === time ? null : { start: time, end: time + stepSeconds * 1000 }
+              isSingle && prev && prev.start === start && prev.end === end
+                ? null
+                : { start, end }
             )
           }
         />
@@ -492,17 +494,18 @@ const TimeSeriesChart = ({
   peak,
   stepSeconds,
   tz,
-  selectedTime,
-  onSelect,
+  selectedWindow,
+  onSelectRange,
 }: {
   buckets: TimeBucket[];
   peak: TimeBucket | null;
   stepSeconds: number;
   tz: string;
-  selectedTime: number | null;
-  onSelect: (time: number) => void;
+  selectedWindow: { start: number; end: number } | null;
+  onSelectRange: (start: number, end: number, isSingle: boolean) => void;
 }) => {
   const [hover, setHover] = useState<number | null>(null);
+  const [drag, setDrag] = useState<{ start: number; end: number } | null>(null);
   const W = 1000;
   const H = 220;
   const pad = { top: 10, right: 10, bottom: 28, left: 36 };
@@ -513,6 +516,7 @@ const TimeSeriesChart = ({
     return <p className="text-xs text-neutral-400">Not enough timestamped data to plot.</p>;
   }
 
+  const stepMs = stepSeconds * 1000;
   const labelMode = bucketLabelMode(stepSeconds);
   const max = buckets.reduce((m, b) => Math.max(m, b.count), 0) || 1;
   const x = (i: number) => pad.left + (i / (buckets.length - 1)) * innerW;
@@ -527,14 +531,39 @@ const TimeSeriesChart = ({
 
   const gridLines = 4;
   const labelEvery = Math.ceil(buckets.length / 8);
-  const selectedIndex = selectedTime !== null ? buckets.findIndex((b) => b.time === selectedTime) : -1;
+
+  const commit = () => {
+    if (!drag) return;
+    const lo = Math.min(drag.start, drag.end);
+    const hi = Math.max(drag.start, drag.end);
+    onSelectRange(buckets[lo].time, buckets[hi].time + stepMs, lo === hi);
+    setDrag(null);
+  };
+
+  // Highlight range: from active drag, else from committed window.
+  let hlLo = -1;
+  let hlHi = -1;
+  if (drag) {
+    hlLo = Math.min(drag.start, drag.end);
+    hlHi = Math.max(drag.start, drag.end);
+  } else if (selectedWindow) {
+    hlLo = buckets.findIndex((b) => b.time >= selectedWindow.start);
+    for (let i = 0; i < buckets.length; i++) if (buckets[i].time < selectedWindow.end) hlHi = i;
+  }
+
+  const sum = (key: 'count' | 'errors', lo: number, hi: number) =>
+    buckets.slice(lo, hi + 1).reduce((acc, b) => acc + b[key], 0);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto select-none">
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full min-w-[480px] cursor-pointer"
-        onMouseLeave={() => setHover(null)}
+        className="w-full min-w-[480px] cursor-crosshair"
+        onMouseLeave={() => {
+          setHover(null);
+          commit();
+        }}
+        onMouseUp={commit}
       >
         {Array.from({ length: gridLines + 1 }).map((_, i) => {
           const gy = pad.top + (innerH / gridLines) * i;
@@ -549,11 +578,11 @@ const TimeSeriesChart = ({
           );
         })}
 
-        {selectedIndex >= 0 && (
+        {hlLo >= 0 && hlHi >= hlLo && (
           <rect
-            x={x(selectedIndex) - colW / 2}
+            x={x(hlLo) - colW / 2}
             y={pad.top}
-            width={colW}
+            width={x(hlHi) - x(hlLo) + colW}
             height={innerH}
             fill="#3b82f6"
             opacity={0.15}
@@ -574,8 +603,8 @@ const TimeSeriesChart = ({
           ) : null
         )}
 
-        {/* hover + click hit areas */}
-        {buckets.map((b, i) => (
+        {/* hover + drag hit areas */}
+        {buckets.map((_, i) => (
           <rect
             key={i}
             x={x(i) - colW / 2}
@@ -583,12 +612,15 @@ const TimeSeriesChart = ({
             width={colW}
             height={innerH}
             fill="transparent"
-            onMouseEnter={() => setHover(i)}
-            onClick={() => onSelect(b.time)}
+            onMouseDown={() => setDrag({ start: i, end: i })}
+            onMouseEnter={() => {
+              setHover(i);
+              setDrag((d) => (d ? { ...d, end: i } : null));
+            }}
           />
         ))}
 
-        {hover !== null && (
+        {hover !== null && !drag && (
           <g>
             <line
               x1={x(hover)}
@@ -608,13 +640,21 @@ const TimeSeriesChart = ({
           requests
           <span className="inline-block w-2 h-2 bg-orange-400 rounded-sm ml-3 mr-1 align-middle" />
           errors
-          <span className="ml-3 text-neutral-400">· click a point to filter requests</span>
+          <span className="ml-3 text-neutral-400">· click or drag to filter requests by time</span>
         </span>
-        {hover !== null && (
-          <span className="font-mono">
-            {formatTime(buckets[hover].time, tz, labelMode)}: {buckets[hover].count} req ·{' '}
-            {buckets[hover].errors} err
+        {drag ? (
+          <span className="font-mono text-blue-600">
+            {formatTime(buckets[Math.min(drag.start, drag.end)].time, tz, labelMode)} →{' '}
+            {formatTime(buckets[Math.max(drag.start, drag.end)].time + stepMs, tz, labelMode)}:{' '}
+            {sum('count', Math.min(drag.start, drag.end), Math.max(drag.start, drag.end))} req
           </span>
+        ) : (
+          hover !== null && (
+            <span className="font-mono">
+              {formatTime(buckets[hover].time, tz, labelMode)}: {buckets[hover].count} req ·{' '}
+              {buckets[hover].errors} err
+            </span>
+          )
         )}
       </div>
     </div>
