@@ -221,3 +221,80 @@ export function isSuspicious(entry: LogEntry): boolean {
   if (entry.userAgent === '-' && entry.method !== '-' && entry.path.endsWith('.php')) return true;
   return false;
 }
+
+// ---------- AI prompt summary ----------
+
+function topLines(items: Counter[], n: number): string {
+  return items
+    .slice(0, n)
+    .map((i) => `  - ${i.key} (${i.count.toLocaleString()})`)
+    .join('\n');
+}
+
+export function buildAiPrompt(entries: LogEntry[]): string {
+  if (!entries.length) return '';
+
+  const dated = entries.filter((e) => e.date).map((e) => e.date!.getTime());
+  const first = dated.length ? new Date(Math.min(...dated)) : null;
+  const last = dated.length ? new Date(Math.max(...dated)) : null;
+  const uniqueIps = new Set(entries.map((e) => e.ip)).size;
+  const errors = entries.filter((e) => e.status >= 400);
+  const serverErrors = entries.filter((e) => e.status >= 500).length;
+  const totalBytes = entries.reduce((acc, e) => acc + e.size, 0);
+  const suspicious = entries.filter((e) => isSuspicious(e));
+  const bots = entries.filter((e) => isBot(e.userAgent)).length;
+
+  const topUrls = countBy(entries, (e) => e.path);
+  const topIps = countBy(entries, (e) => e.ip);
+  const methods = countBy(entries, (e) => e.method);
+  const statuses = countBy(entries, (e) => String(e.status)).sort((a, b) => +a.key - +b.key);
+  const topAttackers = countBy(suspicious, (e) => e.ip);
+  const topAgents = countBy(
+    entries.filter((e) => e.userAgent !== '-'),
+    (e) => e.userAgent
+  );
+
+  const errorRate = ((errors.length / entries.length) * 100).toFixed(1);
+  const range =
+    first && last
+      ? `${first.toISOString().replace('T', ' ').slice(0, 19)} to ${last
+          .toISOString()
+          .replace('T', ' ')
+          .slice(0, 19)} UTC`
+      : 'unknown';
+
+  return `You are a security and web-traffic analyst. Analyze the following web server access-log summary and give me:
+1. A short assessment of overall traffic health.
+2. Any security concerns (scanning, probing, exploit attempts) and which IPs to block or rate-limit.
+3. Notable patterns in errors, bots, and most-requested URLs.
+4. Concrete, prioritized recommendations.
+
+=== ACCESS LOG SUMMARY ===
+Time range: ${range}
+Total requests: ${entries.length.toLocaleString()}
+Unique IP addresses: ${uniqueIps.toLocaleString()}
+Total payload: ${formatBytes(totalBytes)}
+Errors (4xx/5xx): ${errors.length.toLocaleString()} (${errorRate}% of all requests)
+Server errors (5xx): ${serverErrors.toLocaleString()}
+Likely bot requests: ${bots.toLocaleString()}
+Suspicious requests (scans/probes/malformed/exploit paths): ${suspicious.length.toLocaleString()}
+
+HTTP methods:
+${topLines(methods, 8)}
+
+Status codes:
+${topLines(statuses, 10)}
+
+Top requested URLs:
+${topLines(topUrls, 15)}
+
+Top client IPs by request volume:
+${topLines(topIps, 10)}
+
+Top suspicious / attacking IPs (by suspicious request count):
+${topAttackers.length ? topLines(topAttackers, 10) : '  - none detected'}
+
+Top user agents:
+${topAgents.length ? topLines(topAgents, 8) : '  - none recorded'}
+=== END SUMMARY ===`;
+}

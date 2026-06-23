@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { DefaultLayout } from '../../layout/DefaultLayout';
 import {
   parseLogs,
   countBy,
   buildTimeSeries,
+  buildAiPrompt,
   formatBytes,
   statusClass,
   isBot,
@@ -175,8 +177,42 @@ const Dashboard = ({ entries }: { entries: LogEntry[] }) => {
     return { min: sizes[0], max: sizes[sizes.length - 1], median: p(0.5), p95: p(0.95) };
   }, [entries]);
 
+  const [showPrompt, setShowPrompt] = useState(false);
+  const aiPrompt = useMemo(() => buildAiPrompt(entries), [entries]);
+
+  const copyPrompt = () => {
+    navigator.clipboard.writeText(aiPrompt);
+    toast.success('AI prompt copied to clipboard');
+  };
+
   return (
     <div className="space-y-6 pt-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={copyPrompt}
+          className="px-3 py-1.5 text-sm rounded border bg-blue-500 text-white border-blue-500 cursor-pointer hover:bg-blue-600 active:bg-blue-700 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none transition-colors"
+        >
+          Copy as AI prompt
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowPrompt((v) => !v)}
+          className="px-3 py-1.5 text-sm rounded border bg-white cursor-pointer hover:bg-neutral-50 active:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none transition-colors"
+        >
+          {showPrompt ? 'Hide preview' : 'Preview prompt'}
+        </button>
+        <span className="text-xs text-neutral-400">
+          Generates a ready-to-paste summary prompt for any AI assistant.
+        </span>
+      </div>
+
+      {showPrompt && (
+        <pre className="border rounded p-3 bg-neutral-50 text-[11px] font-mono whitespace-pre-wrap max-h-80 overflow-auto text-neutral-700">
+          {aiPrompt}
+        </pre>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         <StatCard label="Requests" value={stats.total.toLocaleString()} />
         <StatCard label="Unique IPs" value={stats.uniqueIps.toLocaleString()} />
