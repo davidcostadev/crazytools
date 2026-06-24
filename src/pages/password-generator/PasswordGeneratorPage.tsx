@@ -99,59 +99,56 @@ export const PasswordGeneratorPage = () => {
         {/* Password display */}
         <div
           className={clsx(
-            'flex items-stretch gap-2 rounded-lg border bg-white overflow-hidden transition-colors',
+            'rounded-xl border bg-white overflow-hidden transition-colors',
             noCharset ? 'border-red-300' : 'border-neutral-300'
           )}
         >
-          <span
-            aria-hidden
-            className={clsx('w-1 shrink-0 transition-colors', noCharset ? 'bg-red-400' : strength.color)}
-          />
-          <output
-            aria-label="Generated password"
-            className="flex-1 px-3 py-4 font-mono text-base sm:text-lg break-all select-all leading-relaxed min-w-0"
-          >
-            {noCharset ? (
-              <span className="text-red-500 text-sm font-sans">
-                Add at least one character below.
+          <div className="flex items-stretch">
+            <span
+              aria-hidden
+              className={clsx('w-1.5 shrink-0 transition-colors', noCharset ? 'bg-red-400' : strength.color)}
+            />
+            <output
+              aria-label="Generated password"
+              className="flex-1 px-3 sm:px-4 py-4 sm:py-5 font-mono text-lg sm:text-xl break-all select-all leading-relaxed min-w-0"
+            >
+              {noCharset ? (
+                <span className="text-red-500 text-sm font-sans">
+                  Add at least one character below.
+                </span>
+              ) : (
+                password
+              )}
+            </output>
+          </div>
+          {/* Card footer: length is front and center next to the password */}
+          <div className="flex items-center justify-between gap-2 border-t border-neutral-200 bg-neutral-50 px-3 sm:px-4 py-2">
+            <span className="inline-flex items-baseline gap-1.5 text-xs text-black/50">
+              <span className="font-mono text-base font-semibold text-black/80 tabular-nums leading-none">
+                {password.length}
               </span>
-            ) : (
-              password
-            )}
-          </output>
-        </div>
-
-        {/* Actions */}
-        <div className="mt-3 flex flex-col sm:flex-row gap-2">
-          <ActionButton onClick={generate} variant="secondary">
-            <BaselineRefresh className="w-4 h-4" />
-            New password
-          </ActionButton>
-          <ActionButton onClick={handleCopy} disabled={noCharset} variant="primary">
-            <BaselineContentCopy className="w-4 h-4" />
-            Copy
-          </ActionButton>
+              character{password.length === 1 ? '' : 's'}
+            </span>
+            <span className={clsx('text-xs font-semibold', noCharset ? 'text-red-500' : strength.textColor)}>
+              {noCharset ? 'No password' : strength.label}
+            </span>
+          </div>
         </div>
 
         {/* Strength meter */}
-        <div className="mt-3 flex items-center gap-3 flex-wrap">
-          <div className="flex gap-1 flex-1 min-w-[8rem]" role="presentation">
-            {[1, 2, 3, 4].map((seg) => (
-              <span
-                key={seg}
-                className={clsx(
-                  'h-1.5 flex-1 rounded-full transition-colors',
-                  !noCharset && strength.score >= seg ? strength.color : 'bg-neutral-200'
-                )}
-              />
-            ))}
-          </div>
-          <span className={clsx('text-sm font-medium', noCharset ? 'text-red-500' : strength.textColor)}>
-            {noCharset ? 'No password' : strength.label}
-          </span>
+        <div className="mt-3 flex gap-1" role="presentation" aria-label="Password strength">
+          {[1, 2, 3, 4].map((seg) => (
+            <span
+              key={seg}
+              className={clsx(
+                'h-1.5 flex-1 rounded-full transition-colors',
+                !noCharset && strength.score >= seg ? strength.color : 'bg-neutral-200'
+              )}
+            />
+          ))}
         </div>
 
-        <div className="mt-1.5 flex items-center justify-between text-xs text-black/45">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-black/45">
           <span>{noCharset ? '0 bits of entropy' : `${Math.round(entropy)} bits of entropy`}</span>
           <span
             className="cursor-help decoration-dotted underline-offset-2 underline decoration-black/25"
@@ -162,20 +159,37 @@ export const PasswordGeneratorPage = () => {
           </span>
         </div>
 
+        {/* Actions */}
+        <div className="mt-4 flex flex-col-reverse sm:flex-row gap-2">
+          <ActionButton onClick={generate} variant="secondary">
+            <BaselineRefresh className="w-4 h-4" />
+            New password
+          </ActionButton>
+          <ActionButton onClick={handleCopy} disabled={noCharset} variant="primary">
+            <BaselineContentCopy className="w-4 h-4" />
+            Copy
+          </ActionButton>
+        </div>
+
         {/* Mode tabs */}
-        <div className="mt-6 inline-flex w-full sm:w-auto rounded-lg bg-neutral-100 p-1">
+        <div
+          className="mt-6 grid grid-cols-3 sm:inline-flex sm:w-auto gap-1 rounded-lg bg-neutral-100 p-1"
+          role="tablist"
+          aria-label="Password type"
+        >
           {MODES.map((m) => (
             <button
               key={m.id}
               type="button"
+              role="tab"
               onClick={() => setMode(m.id)}
-              aria-pressed={mode === m.id}
+              aria-selected={mode === m.id}
               className={clsx(
-                'flex-1 sm:flex-none px-4 py-1.5 rounded-md text-sm cursor-pointer transition-colors',
+                'px-4 py-2 rounded-md text-sm cursor-pointer transition-colors',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
                 mode === m.id
                   ? 'bg-white text-black shadow-sm font-medium'
-                  : 'text-black/55 hover:text-black/80'
+                  : 'text-black/55 hover:text-black/80 active:bg-neutral-200/60'
               )}
             >
               {m.label}
@@ -307,7 +321,7 @@ const ActionButton = ({
     onClick={onClick}
     disabled={disabled}
     className={clsx(
-      'flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors',
+      'flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
       disabled && 'opacity-40 cursor-not-allowed',
       !disabled && 'cursor-pointer',
