@@ -4,25 +4,10 @@ import clsx from 'clsx';
 
 import { Tool, tools } from '../tools';
 import { ToolIcon } from './icons/ToolIcon';
+import { pushRecent, readRecent } from '../utils/recent';
+import { searchTools } from '../utils/search';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-const RECENT_KEY = 'commandPalette.recent';
-const RECENT_MAX = 8;
-
-const readRecent = (): string[] => {
-  try {
-    const raw = window.localStorage.getItem(RECENT_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((p) => typeof p === 'string') : [];
-  } catch {
-    return [];
-  }
-};
-
-const writeRecent = (paths: string[]) => {
-  window.localStorage.setItem(RECENT_KEY, JSON.stringify(paths));
-};
 
 const usePersonal = () => {
   const [personal, setPersonal] = useState(false);
@@ -30,20 +15,6 @@ const usePersonal = () => {
     setPersonal(window.localStorage.getItem('personal') === 'true');
   }, []);
   return personal;
-};
-
-const score = (tool: Tool, q: string) => {
-  if (!q) return 1;
-  const haystack = [tool.name, tool.category, ...(tool.keywords ?? [])].join(' ').toLowerCase();
-  const query = q.toLowerCase().trim();
-  if (tool.name.toLowerCase().startsWith(query)) return 3;
-  if (haystack.includes(query)) return 2;
-  let i = 0;
-  for (const ch of haystack) {
-    if (ch === query[i]) i++;
-    if (i === query.length) return 1;
-  }
-  return 0;
 };
 
 export const CommandPalette = () => {
@@ -70,12 +41,7 @@ export const CommandPalette = () => {
       return { results: [...recentTools, ...rest], recentCount: recentTools.length };
     }
 
-    const ranked = source
-      .map((tool) => ({ tool, s: score(tool, query) }))
-      .filter(({ s }) => s > 0)
-      .sort((a, b) => b.s - a.s)
-      .map(({ tool }) => tool);
-    return { results: ranked, recentCount: 0 };
+    return { results: searchTools(source, query), recentCount: 0 };
   }, [query, personal, recent]);
 
   useEffect(() => {
@@ -110,9 +76,7 @@ export const CommandPalette = () => {
   }, [activeIndex]);
 
   const select = (tool: Tool) => {
-    const next = [tool.path, ...recent.filter((p) => p !== tool.path)].slice(0, RECENT_MAX);
-    writeRecent(next);
-    setRecent(next);
+    setRecent(pushRecent(tool.path));
     setOpen(false);
     if (location.pathname !== tool.path) navigate(tool.path);
   };

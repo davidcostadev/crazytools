@@ -2,6 +2,7 @@ import { RouterProvider, createHashRouter } from 'react-router-dom';
 
 import Wrapper from './Wrapper';
 import ErrorPage from './pages/ErrorPage';
+import { HomePage } from './pages/HomePage';
 import { PrettierGraphqlPayloadPage } from './pages/PrettierGraphqlPayloadPage';
 import { TextFormattersPage } from './pages/text-formatters/TextFormattersPage';
 import { QuestionsFormatterPage } from './pages/QuestionsFormatterPage';
@@ -33,6 +34,10 @@ const router = createHashRouter([
     children: [
       {
         path: '/',
+        element: <HomePage />,
+      },
+      {
+        path: '/graphql-payload',
         element: <PrettierGraphqlPayloadPage />,
       },
       {

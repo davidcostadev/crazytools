@@ -1,10 +1,7 @@
-import { NavLink } from 'react-router-dom';
-import clsx from 'clsx';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { useEffect, useMemo, useState } from 'react';
 
-import { Tool, ToolCategory, tools } from '../tools';
-import { ToolIcon } from '../components/icons/ToolIcon';
+import { ToolSearch } from '../components/ToolSearch';
 
 export const DefaultLayout = ({
   title,
@@ -13,90 +10,55 @@ export const DefaultLayout = ({
   title: string;
   children: React.ReactNode;
 }) => {
-  const personalUrl = new URLSearchParams(window.location.search).get('personal');
-  const [personal, setPersonal] = useState<boolean | undefined>(undefined);
-
-  useEffect(() => {
-    if (personalUrl) {
-      window.localStorage.setItem('personal', personalUrl);
-      setPersonal(personalUrl === 'true');
-    } else {
-      if (window.localStorage.getItem('personal')) {
-        setPersonal(window.localStorage.getItem('personal') === 'true');
-      }
-    }
-  }, [personalUrl]);
-
-  const grouped = useMemo(() => {
-    const source = personal ? tools : tools.filter((t) => !t.personal);
-    const byCategory = new Map<ToolCategory, Tool[]>();
-    source.forEach((tool) => {
-      const list = byCategory.get(tool.category) ?? [];
-      list.push(tool);
-      byCategory.set(tool.category, list);
-    });
-    return Array.from(byCategory.entries());
-  }, [personal]);
+  const navigate = useNavigate();
 
   return (
     <div className="p-5">
       <Helmet>
         <title>{title}</title>
       </Helmet>
-      <h1 className="text-2xl  mb-5 font-normal text-black text-opacity-50">
-        Crazytools / <span className="text-black text-opacity-100 font-bold">{title}</span>
-      </h1>
-      <nav className="flex mb-5 flex-wrap gap-y-1">
-        {grouped.map(([category, categoryTools]) => (
-          <NavCategory key={category} label={category}>
-            {categoryTools.map((tool) => (
-              <MyNavLink key={tool.path} to={tool.path} icon={tool.icon}>
-                {tool.name}
-              </MyNavLink>
-            ))}
-          </NavCategory>
-        ))}
-      </nav>
+
+      <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            aria-label="Back to all tools"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-black/10 text-black/60 cursor-pointer transition-colors hover:border-black/20 hover:bg-black/[0.03] hover:text-black/80 active:bg-black/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+          >
+            <ArrowLeftIcon />
+          </button>
+          <h1 className="text-xl sm:text-2xl font-normal text-black/50 truncate">
+            <NavLink
+              to="/"
+              className="rounded hover:text-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+            >
+              Crazytools
+            </NavLink>{' '}
+            / <span className="font-bold text-black">{title}</span>
+          </h1>
+        </div>
+        <ToolSearch className="w-full sm:w-72 sm:shrink-0" />
+      </header>
+
       {children}
     </div>
   );
 };
 
-const NavCategory = ({ label, children }: { label: string; children: React.ReactNode }) => {
-  return (
-    <div className="flex items-center mr-4 mb-1">
-      <span className="text-xs text-black/40 font-medium uppercase mr-1">{label}:</span>
-      <div className="flex items-center">{children}</div>
-    </div>
-  );
-};
-
-const MyNavLink = ({
-  to,
-  icon,
-  children,
-}: {
-  to: string;
-  icon: Tool['icon'];
-  children: React.ReactNode;
-}) => {
-  return (
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        clsx(
-          "py-1 before:ml-2 before:mr-2 before:content-['/'] first-of-type:before:hidden before:text-black/30 text-xs",
-          {
-            'text-black/50': isActive,
-            'text-blue-500  hover:text-opacity-80 active:text-opacity-100 ': !isActive,
-          }
-        )
-      }
-    >
-      <span className="inline-flex items-center gap-1 align-middle">
-        <ToolIcon name={icon} width={12} height={12} />
-        {children}
-      </span>
-    </NavLink>
-  );
-};
+const ArrowLeftIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M19 12H5" />
+    <path d="m12 19-7-7 7-7" />
+  </svg>
+);
